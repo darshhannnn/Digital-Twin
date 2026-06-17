@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Project specific
+chrome_data/
+resumes/
+jobs.db
+test_pipeline.py
+
+# IDEs
+.vscode/
+.idea/

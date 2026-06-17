@@ -1,0 +1,9 @@
+playwright
+ollama
+google-generativeai
+fpdf2
+python-telegram-bot
+apscheduler
+requests
+beautifulsoup4
+python-dotenv
