@@ -31,6 +31,9 @@ def score_job(jd_text, master_resume_text):
             print("Ollama returned an empty response for scoring.")
             return 0, "Empty response"
 
+        if "<think>" in raw_response:
+            raw_response = raw_response.split("</think>")[-1].strip()
+
         if "```json" in raw_response:
             raw_response = raw_response.split("```json")[1].split("```")[0].strip()
         elif "```" in raw_response:

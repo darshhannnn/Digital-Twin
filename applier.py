@@ -79,6 +79,14 @@ def apply_to_job(url, pdf_path, personal_info):
                         break
             
             print("Form filling attempted. Please review and submit manually if needed.")
+            
+            # Attempt to click submit button
+            submit_btn = page.query_selector('button[type="submit"], input[type="submit"]')
+            if submit_btn and submit_btn.is_visible():
+                print("Submit button found, clicking...")
+                submit_btn.click()
+                time.sleep(5)
+            
             time.sleep(10) # Give time for user to see
             
             return True, f"Applied attempt on {platform}"

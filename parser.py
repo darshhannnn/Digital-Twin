@@ -28,6 +28,10 @@ def parse_message(text):
             print("Ollama returned an empty response.")
             return []
             
+        # Handle thinking tokens if present
+        if "<think>" in raw_response:
+            raw_response = raw_response.split("</think>")[-1].strip()
+            
         # Extract JSON from markdown if needed
         if "```json" in raw_response:
             raw_response = raw_response.split("```json")[1].split("```")[0].strip()
