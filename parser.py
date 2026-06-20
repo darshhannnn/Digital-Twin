@@ -1,18 +1,33 @@
 import json
+import re
+import hashlib
 import ollama
 import config
 
+_client = None
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = ollama.Client(host=config.OLLAMA_BASE_URL)
+    return _client
+
+
 def parse_message(text):
-    client = ollama.Client(host=config.OLLAMA_BASE_URL)
+    client = _get_client()
+    safe_text = text.replace("\\", "\\\\").replace('"', '\\"')
     prompt = f"""
     Analyze the following WhatsApp message and extract job details.
     A message can contain multiple jobs. 
+    Focus ONLY on Software Engineering, AI, Data Science, or Tech-related internships/full-time roles.
+    Ignore roles like Professor, Accounts, Clerk, or non-tech positions.
+    
     Format the output as a JSON list of objects.
     Each object should have: company, role, batch, stipend, location, referral_url.
     If a field is missing, use null.
     
     Message:
-    \"\"\"{text}\"\"\"
+    \"\"\"{safe_text}\"\"\"
     
     Respond ONLY with the JSON list.
     """
@@ -23,16 +38,20 @@ def parse_message(text):
             prompt=prompt
         )
         
-        raw_response = response.get('response', '').strip()
+        raw_response = (response.response or '').strip()
         if not raw_response:
             print("Ollama returned an empty response.")
             return []
             
-        # Handle thinking tokens if present
         if "<think>" in raw_response:
-            raw_response = raw_response.split("</think>")[-1].strip()
+            end = raw_response.find("</think>")
+            if end != -1:
+                raw_response = raw_response[end + 8:].strip()
+            else:
+                raw_response = raw_response.split("<think>")[-1].strip()
             
-        # Extract JSON from markdown if needed
+        print(f"Ollama Raw Response (Cleaned): {raw_response}")
+            
         if "```json" in raw_response:
             raw_response = raw_response.split("```json")[1].split("```")[0].strip()
         elif "```" in raw_response:
@@ -40,7 +59,6 @@ def parse_message(text):
             
         jobs = json.loads(raw_response)
         
-        # Filter by batch
         filtered_jobs = []
         if isinstance(jobs, list):
             for job in jobs:

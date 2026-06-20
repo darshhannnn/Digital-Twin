@@ -1,30 +1,33 @@
-# WhatsApp Job Agent 🚀
+# WhatsApp Job Agent
 
-An AI-powered job application assistant that monitors WhatsApp channels, evaluates job postings, and automatically applies to relevant roles.
+An AI-powered job application assistant that monitors WhatsApp channels, evaluates job postings, and automatically applies to relevant roles. Runs fully local with Ollama — no API keys required.
 
-## 🌟 Features
+## Features
 
 - **WhatsApp Monitoring**: Automatically scrapes specified WhatsApp channels for new job postings.
-- **AI-Powered Parsing**: Uses **Ollama (qwen3:4b)** to extract structured job details (Company, Role, Batch, URL) from raw messages.
+- **AI-Powered Parsing**: Uses **Ollama (qwen3:4b)** to extract structured job details from raw messages.
 - **Smart Scoring**: Evaluates the fit between job descriptions and your resume using local LLMs.
-- **Resume Tailoring**: Leverages **Gemini 1.5 Flash** to rewrite your resume bullets specifically for each job.
+- **Resume Tailoring**: Rewrites your resume bullets specifically for each job using local Ollama.
 - **Automated Applications**: Uses **Playwright** to auto-fill forms on platforms like **Workday, Greenhouse, and Lever**.
 - **Native PDF Generation**: Generates professional, tailored PDFs on the fly.
-- **Telegram Notifications**: Get real-time updates on your phone for every application or manual review request.
+- **Telegram Notifications**: Get real-time updates on your phone for every application.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Python 3.11+**
 - **Playwright** (Browser Automation)
-- **Ollama** (Local LLM for Parsing & Scoring)
-- **Google Gemini API** (Resume Tailoring)
-- **fpdf2** (Native PDF Generation)
+- **Ollama** (Local LLM — all inference runs on your GPU)
+- **fpdf2** (PDF Generation)
 - **SQLite** (Job Tracking & History)
+- **Flask** (Dashboard)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Prerequisites
-- Install [Ollama](https://ollama.com/) and pull the model: `ollama pull qwen3:4b`
+- Install [Ollama](https://ollama.com/) and pull the model:
+  ```bash
+  ollama pull qwen3:4b
+  ```
 - Install Python dependencies:
   ```bash
   pip install -r requirements.txt
@@ -32,10 +35,12 @@ An AI-powered job application assistant that monitors WhatsApp channels, evaluat
   ```
 
 ### 2. Configuration
-Edit `config.py` with your credentials:
-- `GEMINI_API_KEY`: Your Google AI Studio key.
-- `WHATSAPP_CHANNELS`: List of channel names to monitor.
-- `TARGET_BATCH`: e.g., "2026".
+Copy `.env.example` to `.env` and fill in your values:
+```bash
+cp .env.example .env
+```
+- `WHATSAPP_CHANNELS` in `config.py`: List of channel names to monitor.
+- `TARGET_BATCH` in `config.py`: e.g., "2026".
 
 ### 3. Usage
 1. **Initial Login**: Run the scraper once to scan the WhatsApp QR code:
@@ -47,15 +52,19 @@ Edit `config.py` with your credentials:
    python main.py
    ```
 
-## 📂 Project Structure
+## Project Structure
 
+- `llm.py`: Shared Ollama client with JSON retry/repair logic.
 - `whatsapp.py`: Handles WhatsApp Web interaction and message scraping.
 - `parser.py`: Uses AI to turn chat messages into structured JSON.
 - `scraper.py`: Extracts Job Descriptions from URLs.
 - `scorer.py`: Calculates fit score (0-100).
-- `tailor.py`: Personalizes your resume using Gemini.
+- `analyzer.py`: Skill gap analysis, interview prep, salary estimation.
+- `tailor.py`: Personalizes your resume for each job.
+- `cover_letter.py`: Generates tailored cover letters.
 - `applier.py`: The automation engine for career pages.
 - `pdf.py`: Converts tailored data into a PDF resume.
+- `dashboard.py`: Flask web dashboard for monitoring.
 
-## ⚠️ Disclaimer
+## Disclaimer
 This tool is for educational purposes. Always review automated applications to ensure accuracy and compliance with job board terms of service.

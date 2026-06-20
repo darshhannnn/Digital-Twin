@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Twin — Job Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3e;
+      --accent:   #6366f1;
+      --accent2:  #22d3ee;
+      --success:  #22c55e;
+      --warn:     #f59e0b;
+      --danger:   #ef4444;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --radius:   12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Nav ── */
+    nav {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 32px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    nav .logo { font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    nav .spacer { flex: 1; }
+    nav a { color: var(--muted); text-decoration: none; font-size: .875rem; transition: color .2s; }
+    nav a:hover { color: var(--text); }
+    .btn {
+      padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: .875rem; font-weight: 500; transition: all .2s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #4f46e5; transform: translateY(-1px); }
+    .btn-sm { padding: 5px 12px; font-size: .78rem; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
+    /* ── Layout ── */
+    .page { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+
+    /* ── Stats cards ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+      transition: transform .2s, border-color .2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+    .stat-card .value { font-size: 2rem; font-weight: 700; }
+    .stat-card .label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .stat-card.accent  .value { color: var(--accent); }
+    .stat-card.success .value { color: var(--success); }
+    .stat-card.warn    .value { color: var(--warn); }
+    .stat-card.danger  .value { color: var(--danger); }
+    .stat-card.cyan    .value { color: var(--accent2); }
+
+    /* ── Charts row ── */
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .chart-card h3 { font-size: .875rem; color: var(--muted); margin-bottom: 14px; }
+    .chart-card canvas { max-height: 200px; }
+
+    /* ── Table ── */
+    .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .table-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .table-header h2 { font-size: 1rem; font-weight: 600; flex: 1; }
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-chip {
+      padding: 4px 14px; border-radius: 99px; font-size: .78rem; cursor: pointer;
+      border: 1px solid var(--border); color: var(--muted); background: transparent; transition: all .2s;
+    }
+    .filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 16px; text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--border); }
+    td { padding: 12px 16px; font-size: .875rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(99,102,241,.05); }
+    .score-bar { display: flex; align-items: center; gap: 8px; }
+    .score-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; min-width: 80px; }
+    .score-fill { height: 100%; border-radius: 3px; }
+    .score-num { font-size: .78rem; font-weight: 600; width: 32px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: .72rem; font-weight: 500; }
+    .badge-applied  { background: rgba(34,197,94,.15); color: var(--success); }
+    .badge-skipped  { background: rgba(100,116,139,.15); color: var(--muted); }
+    .badge-failed   { background: rgba(239,68,68,.15); color: var(--danger); }
+    .badge-interview{ background: rgba(99,102,241,.15); color: var(--accent); }
+    .badge-offer    { background: rgba(34,211,238,.15); color: var(--accent2); }
+    .badge-other    { background: rgba(245,158,11,.15); color: var(--warn); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; width: min(800px, 95vw); max-height: 90vh;
+      overflow-y: auto; padding: 28px;
+    }
+    .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 20px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .detail-item label { display: block; font-size: .72rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .detail-item .val { font-size: .9rem; }
+    .section-block { margin-bottom: 18px; }
+    .section-block h4 { font-size: .8rem; color: var(--accent2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+    .skill-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .skill-chip { padding: 4px 12px; border-radius: 99px; font-size: .75rem; }
+    .skill-chip.has  { background: rgba(34,197,94,.15); color: var(--success); }
+    .skill-chip.miss { background: rgba(239,68,68,.15); color: var(--danger); }
+    .qa-item { margin-bottom: 14px; }
+    .qa-item .q { font-weight: 600; font-size: .875rem; margin-bottom: 4px; }
+    .qa-item .a { font-size: .85rem; color: var(--muted); line-height: 1.5; }
+    .status-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-family: 'Inter', sans-serif; }
+    input[type=text] { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-family: 'Inter', sans-serif; flex: 1; min-width: 140px; }
+
+    /* ── Run button pulse ── */
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,.4); } 50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); } }
+    .pulse { animation: pulse 2s infinite; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--surface); border: 1px solid var(--accent);
+      color: var(--text); padding: 12px 20px; border-radius: 10px;
+      font-size: .875rem; transform: translateY(80px); opacity: 0;
+      transition: all .3s; z-index: 300;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    .empty { text-align: center; color: var(--muted); padding: 48px; }
+    @media (max-width: 768px) {
+      .charts-row { grid-template-columns: 1fr; }
+      .detail-grid { grid-template-columns: 1fr; }
+      nav { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">⚡ Digital Twin</span>
+  <span class="spacer"></span>
+  <a href="/">Dashboard</a>
+  <button class="btn btn-primary btn-sm pulse" id="runBtn" onclick="triggerRun()">▶ Run Agent</button>
+</nav>
+
+<div class="page">
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card accent">
+      <span class="value" id="statTotal">{{ stats.total }}</span>
+      <span class="label">Total Jobs</span>
+    </div>
+    <div class="stat-card success">
+      <span class="value" id="statApplied">{{ stats.applied }}</span>
+      <span class="label">Applied</span>
+    </div>
+    <div class="stat-card warn">
+      <span class="value" id="statSkipped">{{ stats.skipped }}</span>
+      <span class="label">Skipped</span>
+    </div>
+    <div class="stat-card cyan">
+      <span class="value" id="statInterviews">{{ stats.interviews }}</span>
+      <span class="label">Interviews</span>
+    </div>
+    <div class="stat-card success">
+      <span class="value" id="statOffers">{{ stats.offers }}</span>
+      <span class="label">Offers</span>
+    </div>
+    <div class="stat-card accent">
+      <span class="value" id="statAvg">{{ stats.avg_score }}</span>
+      <span class="label">Avg Score</span>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Applications by Status</h3>
+      <canvas id="statusChart"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Applications by Source</h3>
+      <canvas id="sourceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Jobs Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <h2>All Jobs</h2>
+      <div class="filter-bar">
+        <button class="filter-chip active" onclick="filterTable(this,'all')">All</button>
+        <button class="filter-chip" onclick="filterTable(this,'applied')">Applied</button>
+        <button class="filter-chip" onclick="filterTable(this,'skipped')">Skipped</button>
+        <button class="filter-chip" onclick="filterTable(this,'interview')">Interview</button>
+        <button class="filter-chip" onclick="filterTable(this,'offer')">Offer</button>
+      </div>
+    </div>
+    {% if jobs %}
+    <table id="jobTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Score</th>
+          <th>Source</th>
+          <th>Status</th>
+          <th>Applied At</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in jobs %}
+        <tr data-status="{{ job.status or '' }}" id="row-{{ job.id }}">
+          <td style="color:var(--muted);font-size:.78rem">{{ job.id }}</td>
+          <td><strong>{{ job.company or '—' }}</strong></td>
+          <td style="color:var(--muted)">{{ job.role or '—' }}</td>
+          <td>
+            <div class="score-bar">
+              <div class="score-track">
+                <div class="score-fill" style="width:{{ job.fit_score or 0 }}%;background:{% if (job.fit_score or 0) >= 70 %}var(--success){% elif (job.fit_score or 0) >= 40 %}var(--warn){% else %}var(--danger){% endif %}"></div>
+              </div>
+              <span class="score-num">{{ job.fit_score or 0 }}</span>
+            </div>
+          </td>
+          <td style="color:var(--muted);font-size:.78rem">{{ job.source or 'whatsapp' }}</td>
+          <td>
+            <span class="badge badge-{% if job.status == 'applied' %}applied{% elif job.status == 'skipped' %}skipped{% elif job.status and 'fail' in job.status %}failed{% elif job.status and 'interview' in job.status %}interview{% elif job.status and 'offer' in job.status %}offer{% else %}other{% endif %}">
+              {{ job.status or '—' }}
+            </span>
+          </td>
+          <td style="color:var(--muted);font-size:.78rem">{{ (job.applied_at or '')[:16] }}</td>
+          <td>
+            <button class="btn btn-ghost btn-sm" onclick="openDetail({{ job.id }})">View</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">
+      <p>No jobs tracked yet.</p>
+      <p style="font-size:.85rem;margin-top:8px">Run the agent to start discovering jobs.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div><!-- /page -->
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <h2 class="modal-title" id="modalTitle" style="margin:0;flex:1">Job Detail</h2>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕ Close</button>
+    </div>
+    <div id="modalBody">Loading...</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Charts ──────────────────────────────────────────────────────────────────
+const statusData = {{ stats.by_status | tojson }};
+const sourceData = {{ stats.by_source | tojson }};
+const COLORS = ['#6366f1','#22d3ee','#22c55e','#f59e0b','#ef4444','#a78bfa','#fb923c'];
+
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: statusData.map(d => d.status || 'unknown'),
+    datasets: [{ data: statusData.map(d => d.count), backgroundColor: COLORS, borderWidth: 0 }]
+  },
+  options: { plugins: { legend: { labels: { color: '#94a3b8', font: { family: 'Inter' } } } } }
+});
+
+new Chart(document.getElementById('sourceChart'), {
+  type: 'bar',
+  data: {
+    labels: sourceData.map(d => d.source || 'unknown'),
+    datasets: [{ data: sourceData.map(d => d.count), backgroundColor: '#6366f1', borderRadius: 6 }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#94a3b8' }, grid: { color: '#2a2d3e' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: '#2a2d3e' } }
+    }
+  }
+});
+
+// ── Filter ───────────────────────────────────────────────────────────────────
+function filterTable(btn, filter) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#jobTable tbody tr').forEach(row => {
+    const status = row.dataset.status || '';
+    row.style.display = (filter === 'all' || status.includes(filter)) ? '' : 'none';
+  });
+}
+
+// ── Detail Modal ─────────────────────────────────────────────────────────────
+function openDetail(jobId) {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('modalBody').innerHTML = '<p style="color:var(--muted)">Loading...</p>';
+  fetch(`/api/job/${jobId}`)
+    .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+    .then(j => renderDetail(j))
+    .catch(() => { document.getElementById('modalBody').innerHTML = 'Error loading job.'; });
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function renderDetail(j) {
+  const sg   = tryParse(j.skill_gap);
+  const ip   = tryParse(j.interview_prep);
+  const sal  = tryParse(j.salary_estimate);
+
+  let html = `
+    <div class="detail-grid">
+      <div class="detail-item"><label>Company</label><div class="val"><strong>${e(j.company)}</strong></div></div>
+      <div class="detail-item"><label>Role</label><div class="val">${e(j.role)}</div></div>
+      <div class="detail-item"><label>Fit Score</label><div class="val">${j.fit_score || 0}/100</div></div>
+      <div class="detail-item"><label>Status</label><div class="val">${e(j.status)}</div></div>
+      <div class="detail-item"><label>Source</label><div class="val">${e(j.source)}</div></div>
+      <div class="detail-item"><label>Applied At</label><div class="val">${(j.applied_at||'').slice(0,16)||'—'}</div></div>
+    </div>`;
+
+  if (j.referral_url) html += `<div class="section-block"><h4>Job URL</h4><a href="${e(j.referral_url)}" target="_blank" style="color:var(--accent);font-size:.85rem">${e(j.referral_url)}</a></div>`;
+
+  // Salary
+  if (sal) html += `<div class="section-block"><h4>💰 Salary Estimate</h4><p style="font-size:.9rem">${e(sal.monthly_range||'—')}/mo &nbsp;|&nbsp; ${e(sal.annual_range||'—')}</p><p style="font-size:.8rem;color:var(--muted);margin-top:4px">${e(sal.reasoning||'')}</p></div>`;
+
+  // Skill Gap
+  if (sg) {
+    const matched = (sg.matched_skills||[]).map(s=>`<span class="skill-chip has">${e(s)}</span>`).join('');
+    const missing = (sg.missing_skills||[]).map(s=>`<span class="skill-chip miss">${e(s)}</span>`).join('');
+    const resources = (sg.learning_resources||[]).map(r=>`<li style="font-size:.8rem;color:var(--muted);margin-top:4px">${e(r.skill)}: ${e(r.resource)}</li>`).join('');
+    html += `<div class="section-block"><h4>🔍 Skill Gap (${sg.match_score_pct||0}% match)</h4>
+      <p style="font-size:.75rem;color:var(--muted);margin-bottom:6px">${e(sg.summary||'')}</p>
+      <div class="skill-chips" style="margin-bottom:8px">${matched}</div>
+      <div class="skill-chips" style="margin-bottom:8px">${missing}</div>
+      ${resources ? `<ul style="list-style:none;padding-left:0">${resources}</ul>` : ''}
+    </div>`;
+  }
+
+  // Interview Prep
+  if (ip && ip.questions) {
+    const qs = ip.questions.map(q=>`<div class="qa-item"><div class="q">Q: ${e(q.q)}</div><div class="a">A: ${e(q.model_answer)}</div></div>`).join('');
+    html += `<div class="section-block"><h4>🎯 Interview Prep</h4>${qs}</div>`;
+  }
+
+  // Status update form
+  html += `<div class="section-block"><h4>📌 Update Status</h4>
+    <div class="status-form">
+      <select id="statusSel">
+        ${['applied','interview_scheduled','interview_done','offer','rejected','skipped','failed'].map(s=>`<option value="${s}"${s===j.status?' selected':''}>${s}</option>`).join('')}
+      </select>
+      <input type="text" id="statusNote" placeholder="Optional note...">
+      <button class="btn btn-primary btn-sm" onclick="updateStatus(${j.id})">Update</button>
+    </div>
+  </div>`;
+
+  document.getElementById('modalTitle').textContent = `${j.company} — ${j.role}`;
+  document.getElementById('modalBody').innerHTML = html;
+}
+
+function updateStatus(jobId) {
+  const status = document.getElementById('statusSel').value;
+  const note   = document.getElementById('statusNote').value;
+  fetch(`/api/job/${jobId}/status`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({status, note})
+  }).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); }).then(()=>{
+    showToast('Status updated ✅');
+    // Update badge in table
+    const row = document.getElementById(`row-${jobId}`);
+    if (row) row.dataset.status = status;
+  });
+}
+
+// ── Run agent ───────────────────────────────────────────────────────────────
+function triggerRun() {
+  fetch('/api/run', {method:'POST'})
+    .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+    .then(d => showToast(d.message || 'Agent started'))
+    .catch(e => showToast('Error: ' + e.message));
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function e(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function tryParse(s) { try { return typeof s==='string' ? JSON.parse(s) : s; } catch { return null; } }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

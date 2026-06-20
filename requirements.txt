@@ -1,9 +1,7 @@
-playwright
-ollama
-google-generativeai
-fpdf2
-python-telegram-bot
-apscheduler
-requests
-beautifulsoup4
-python-dotenv
+playwright==1.52.0
+ollama==0.4.8
+fpdf2==2.8.3
+requests==2.32.3
+beautifulsoup4==4.13.4
+python-dotenv==1.1.0
+flask==3.1.1

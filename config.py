@@ -4,33 +4,59 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# ---------------------------------------------------------------------------
 # API Keys and Tokens
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your_gemini_api_key_here")
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "your_telegram_bot_token_here")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "your_telegram_chat_id_here")
+# ---------------------------------------------------------------------------
+TELEGRAM_BOT_TOKEN  = os.getenv("TELEGRAM_BOT_TOKEN") or ""
+TELEGRAM_CHAT_ID    = os.getenv("TELEGRAM_CHAT_ID") or ""
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL") or ""
 
-# Ollama Settings
+# ---------------------------------------------------------------------------
+# Ollama Settings  (local LLM for parsing & scoring)
+# ---------------------------------------------------------------------------
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
-os.environ["OLLAMA_HOST"] = OLLAMA_BASE_URL
 OLLAMA_MODEL = "qwen3:4b"
 
+# ---------------------------------------------------------------------------
 # Application Settings
-FIT_SCORE_THRESHOLD = 70
+# ---------------------------------------------------------------------------
+FIT_SCORE_THRESHOLD = int(os.getenv("FIT_SCORE_THRESHOLD", "70"))
+TARGET_BATCH        = os.getenv("TARGET_BATCH", "2026")
+CHECK_INTERVAL      = int(os.getenv("CHECK_INTERVAL", "3600"))
+JD_CACHE_TTL_HOURS  = int(os.getenv("JD_CACHE_TTL_HOURS", "24"))
+
+# WhatsApp channels to monitor
 WHATSAPP_CHANNELS = [
     "Jobs Careers"
 ]
-CHECK_INTERVAL = 3600  # 1 hour in seconds
-TARGET_BATCH = "2026"
 
+# LinkedIn search queries for multi-source discovery
+LINKEDIN_SEARCH_QUERIES = [
+    f"Software Engineer Intern {TARGET_BATCH}",
+    f"SDE Intern {TARGET_BATCH}",
+    f"Data Scientist Intern {TARGET_BATCH}",
+]
+
+# Flask dashboard
+DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "5000"))
+DASHBOARD_HOST = os.getenv("DASHBOARD_HOST", "127.0.0.1")
+
+# Dashboard API key (optional, for securing endpoints)
+DASHBOARD_API_KEY = os.getenv("DASHBOARD_API_KEY") or ""
+
+# ---------------------------------------------------------------------------
 # Paths
-BASE_DIR = Path(__file__).parent
-RESUMES_DIR = BASE_DIR / "resumes"
+# ---------------------------------------------------------------------------
+BASE_DIR           = Path(__file__).parent
+RESUMES_DIR        = BASE_DIR / "resumes"
+COVER_LETTERS_DIR  = BASE_DIR / "cover_letters"
 MASTER_RESUME_PATH = BASE_DIR / "master_resume.txt"
-DB_PATH = BASE_DIR / "jobs.db"
-CHROME_DATA_DIR = BASE_DIR / "chrome_data"
+DB_PATH            = BASE_DIR / "jobs.db"
+CHROME_DATA_DIR    = BASE_DIR / "chrome_data"
 
 # Ensure directories exist
 RESUMES_DIR.mkdir(exist_ok=True)
+COVER_LETTERS_DIR.mkdir(exist_ok=True)
 CHROME_DATA_DIR.mkdir(exist_ok=True)
 
 # Create master resume placeholder if not exists

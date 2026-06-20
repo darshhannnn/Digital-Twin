@@ -2,11 +2,20 @@ import json
 import ollama
 import config
 
+_client = None
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = ollama.Client(host=config.OLLAMA_BASE_URL)
+    return _client
+
+
 def score_job(jd_text, master_resume_text):
     if not jd_text or not master_resume_text:
         return 0, "Missing JD or Master Resume"
     
-    client = ollama.Client(host=config.OLLAMA_BASE_URL)
+    client = _get_client()
     prompt = f"""
     Compare the following Job Description (JD) with the Master Resume.
     Score the fit from 0 to 100.
@@ -26,13 +35,17 @@ def score_job(jd_text, master_resume_text):
             prompt=prompt
         )
         
-        raw_response = response.get('response', '').strip()
+        raw_response = (response.response or '').strip()
         if not raw_response:
             print("Ollama returned an empty response for scoring.")
             return 0, "Empty response"
 
         if "<think>" in raw_response:
-            raw_response = raw_response.split("</think>")[-1].strip()
+            end = raw_response.find("</think>")
+            if end != -1:
+                raw_response = raw_response[end + 8:].strip()
+            else:
+                raw_response = raw_response.split("<think>")[-1].strip()
 
         if "```json" in raw_response:
             raw_response = raw_response.split("```json")[1].split("```")[0].strip()

@@ -8,8 +8,8 @@ venv/
 # Project specific
 chrome_data/
 resumes/
+cover_letters/
 jobs.db
-test_pipeline.py
 
 # IDEs
 .vscode/
