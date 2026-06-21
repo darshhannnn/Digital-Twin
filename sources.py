@@ -143,7 +143,7 @@ def _parse_hn_post(text: str, author: str, post_id: int = 0) -> dict | None:
 def _fetch_internshala(role_keyword: str) -> list[dict]:
     jobs = []
     keyword = role_keyword.lower().replace(" ", "-")
-    url = f"https://internshala.com/internships/{keyword}-internship/"
+    url = f"https://internshala.com/internships/{keyword}/"
     try:
         req = urllib.request.Request(url, headers={
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
