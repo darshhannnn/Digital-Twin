@@ -40,6 +40,7 @@ def _status_emoji(status: str) -> str:
         "offer":            "🎉",
         "rejected":         "😔",
         "workday":          "🔧",
+        "manual_required":  "📝",
     }
     for key, emoji in mapping.items():
         if key in (status or "").lower():

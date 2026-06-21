@@ -41,6 +41,30 @@ def _handle_signal(signum, frame):
     _shutdown_requested = True
 
 
+_APPLY_DOMAINS = (
+    "lever.co", "greenhouse.io", "myworkdayjobs.com", "workday.com",
+    "ashbyhq.com", "jobs.lever.co", "boards.greenhouse.io",
+    "apply.workable.com", "jobs.ashbyhq.com",
+)
+
+def _is_apply_url(url: str) -> bool:
+    """Return True if the URL looks like a job application page."""
+    if not url:
+        return False
+    url_lower = url.lower()
+    if any(d in url_lower for d in _APPLY_DOMAINS):
+        return True
+    if "news.ycombinator.com" in url_lower:
+        return False
+    if "linkedin.com" in url_lower and "/jobs/" in url_lower:
+        return True
+    if "internshala.com" in url_lower and "/internship/" in url_lower:
+        return True
+    if "apply" in url_lower or "career" in url_lower or "job" in url_lower:
+        return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -127,16 +151,21 @@ def _process_job(job: dict, master_resume: str):
     })
 
     if pdf_path:
-        full_name = os.getenv("FULL_NAME", "Your Full Name")
-        email     = os.getenv("EMAIL",     "your.email@example.com")
-        if not full_name.strip() or not email.strip():
-            print("  [WARN] FULL_NAME or EMAIL not set in .env. Skipping application.")
-            status     = "tailoring_failed"
-            status_msg = "Missing FULL_NAME or EMAIL in .env"
+        if not _is_apply_url(url):
+            print(f"  [SKIP] URL is not an application page: {url[:60]}...")
+            status     = "manual_required"
+            status_msg = "Scored well but URL is not an application page — apply manually"
         else:
-            personal_info = {"full_name": full_name, "email": email}
-            success, status_msg = applier.apply_to_job(url, pdf_path, personal_info)
-            status = "applied" if success else "failed"
+            full_name = os.getenv("FULL_NAME", "Your Full Name")
+            email     = os.getenv("EMAIL",     "your.email@example.com")
+            if not full_name.strip() or not email.strip():
+                print("  [WARN] FULL_NAME or EMAIL not set in .env. Skipping application.")
+                status     = "tailoring_failed"
+                status_msg = "Missing FULL_NAME or EMAIL in .env"
+            else:
+                personal_info = {"full_name": full_name, "email": email}
+                success, status_msg = applier.apply_to_job(url, pdf_path, personal_info)
+                status = "applied" if success else "failed"
     else:
         print("  [WARN] No PDF — skipping application step.")
         status     = "tailoring_failed"
